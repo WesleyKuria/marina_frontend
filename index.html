@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marina Dashboard - Kilifi County Mangrove Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header Styles */
+        .navbar {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 1rem 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #22c55e;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-link:hover {
+            color: #22c55e;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(34, 197, 94, 0.1)),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300"><path fill="%2322c55e" fill-opacity="0.05" d="M0,96L48,112C96,128,192,160,288,176C384,192,480,192,576,181.3C672,171,768,149,864,144C960,139,1056,149,1152,154.7C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"/></svg>');
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 2rem;
+            margin-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: #22c55e;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            color: #a1a1a1;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 5rem 0;
+            background-color: #0a0a0a;
+        }
+
+        .section-alt {
+            background-color: #111111;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .section-subtitle {
+            font-size: 1.3rem;
+            color: #22c55e;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-description {
+            font-size: 1.1rem;
+            color: #a1a1a1;
+            max-width: 700px;
+            margin: 2rem auto 0;
+        }
+
+        /* Google Earth Engine Map */
+        .gee-container {
+            background: #111111;
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 3rem 0;
+            border: 2px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .gee-map-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed rgba(34, 197, 94, 0.3);
+            position: relative;
+        }
+
+        .gee-placeholder {
+            text-align: center;
+            color: #a1a1a1;
+        }
+
+        .gee-placeholder h3 {
+            color: #22c55e;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gee-placeholder code {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .card {
+            background: #111111;
+            border-radius: 15px;
+            padding: 2.5rem;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: scale(1.05);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #22c55e;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 1rem;
+            color: #a1a1a1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            height: 400px;
+            margin: 2rem 0;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 15px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        /* Data List */
+        .data-list {
+            list-style: none;
+        }
+
+        .data-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(34, 197, 94, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .data-item:hover {
+            background: #2a2a2a;
+            border-color: rgba(34, 197, 94, 0.3);
+            transform: translateX(10px);
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .file-info h4 {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .file-info small {
+            color: #a1a1a1;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Timeline */
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .timeline-item {
+            text-align: center;
+            padding: 2rem;
+            background: #1a1a1a;
+            border-radius: 15px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        .timeline-year {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #22c55e;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-label {
+            color: #a1a1a1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            background: #000000;
+            padding: 3rem 0;
+            border-top: 1px solid rgba(34, 197, 94, 0.2);
+            text-align: center;
+        }
+
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .tech-badge {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gee-map-container {
+                height: 400px;
+            }
+            
+            .hero-section {
+                padding: 2rem 1rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        /* Status indicators */
+        .status-indicators {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 1rem 1.5rem;
+            background: #1a1a1a;
+            border-radius: 25px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-text {
+            color: #ffffff;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">MARINA AI</div>
+            <ul class="nav-menu">
+                <li><a href="#about" class="nav-link">About</a></li>
+                <li><a href="#analysis" class="nav-link">Analysis</a></li>
+                <li><a href="#data" class="nav-link">Data</a></li>
+                <li><a href="#team" class="nav-link">Team</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content animate-on-scroll">
+            <h2 class="hero-subtitle">MARINA AI MODEL</h2>
+            <h1 class="hero-title">Kilifi County</h1>
+            <p class="hero-description">
+                Revolutionizing mangrove preservation through the power of machine learning and satellite imagery analysis. 
+                Monitoring, predicting, and responding to environmental changes affecting mangrove habitats in Kenya.
+            </p>
+            <a href="#analysis" class="cta-button">Explore Analysis</a>
+        </div>
+    </section>
+
+    <!-- Status Section -->
+    <section class="section">
+        <div class="container">
+            <div class="status-indicators animate-on-scroll">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Earth Engine Active</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">ML Model Ready</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span class="status-text">Data Updated</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="section section-alt">
+        <div class="container">
+            <div class="section-header animate-on-scroll">
+                <h2 class="section-title">About Us</h2>
+                <p class="section-subtitle">AI-Powered Mangrove Conservation</p>
+                <p class="section-description">
+                    At Marina Dashboard, our vision is to revolutionize mangrove preservation through the power of machine learning.
+                    Motivated by the critical role mangroves play in coastal ecosystems and climate resilience, we leverage 
+                    cutting-edge technology to enhance conservation efforts in Kilifi County, Kenya.
+                </p>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card animate-on-scroll">
+                    <div class="card-header">
+                        <div class="card-icon">📊</div>
+                        <h3 class="card-title">Key Metrics</h3>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="mangroveArea">2,847</div>
+                            <div class="metric-label">Hectares Monitored</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="healthScore">87%</div>
+                            <div class="metric-label">Health Score</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="changeRate">-2.3%</div>
+                            <div class="metric-label">Change Rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="modelAccuracy">94.2%</div>
+                            <div class="metric-label">ML Accuracy</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card animate-on-scroll">
+                    <div class="card-header">
+                        <div class="card-icon">🌿</div>
+                        <h3 class="card-title">NDVI Analysis</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ndviChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Google Earth Engine Analysis -->
+    <section id="analysis" class="section">
+        <div class="container">
+            <div class="section-header animate-on-scroll">
+                <h2 class="section-title">Satellite Monitoring</h2>
+                <p class="section-subtitle">Interactive Earth Engine Analysis</p>
+                <p class="section-description">
+                    Satellite imagery has emerged as a pivotal resource for the remote monitoring of mangroves on a global scale. 
+                    Google Earth Engine (GEE) offers access to an extensive repository of satellite imagery. 
+                    Leveraging Landsat 8/9 satellite data, we employ the Normalized Difference Vegetation Index (NDVI) 
+                    to yield vital insights into mangrove health and ecosystem vitality.
+                </p>
+            </div>
+
+            <div class="gee-container animate-on-scroll">
+                <div class="gee-map-container" id="geeMapContainer">
+                    <!-- Replace the src URL below with your actual Google Earth Engine app URL -->
+                    <iframe 
+                        src="https://code.earthengine.google.com/" 
+                        width="100%" 
+                        height="100%" 
+                        frameborder="0" 
+                        style="border-radius: 15px;"
+                        allowfullscreen>
+                    </iframe>
+                    
+                    <!-- Fallback placeholder - remove once you add your GEE app URL -->
+                    <div class="gee-placeholder" style="display: none;">
+                        <h3>Google Earth Engine Map</h3>
+                        <p>Replace the iframe src above with your published Earth Engine app URL</p>
+                        <code>https://ee-marina-kilifi.projects.earthengine.app/view/kilifi-ndvi</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline animate-on-scroll">
+                <div class="timeline-item">
+                    <div class="timeline-year">1996</div>
+                    <div class="timeline-label">Historical Baseline</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2007</div>
+                    <div class="timeline-label">Reference Period</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2020</div>
+                    <div class="timeline-label">Recent Analysis</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2024</div>
+                    <div class="timeline-label">Current Data</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Section -->
+    <section id="data" class="section section-alt">
+        <div class="container">
+            <div class="section-header animate-on-scroll">
+                <h2 class="section-title">Study Area & Data</h2>
+                <p class="section-subtitle">Kilifi County Coverage</p>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card animate-on-scroll">
+                    <div class="card-header">
+                        <div class="card-icon">📍</div>
+                        <h3 class="card-title">Study Area</h3>
+                    </div>
+                    <p><strong>Geographic Bounds:</strong> 3°20'S to 3°50'S, 39°50'E to 40°10'E</p>
+                    <p style="margin: 1rem 0;"><strong>Key Locations:</strong></p>
+                    <ul class="data-list">
+                        <li class="data-item">
+                            <div class="file-icon">🏖️</div>
+                            <div class="file-info">
+                                <h4>Kilifi Creek</h4>
+                                <small>Primary mangrove ecosystem</small>
+                            </div>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">🌊</div>
+                            <div class="file-info">
+                                <h4>Mida Creek</h4>
+                                <small>Protected marine area</small>
+                            </div>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">🐠</div>
+                            <div class="file-info">
+                                <h4>Watamu Marine Park</h4>
+                                <small>Conservation zone</small>
+                            </div>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">🌱</div>
+                            <div class="file-info">
+                                <h4>Mtwapa Creek</h4>
+                                <small>Restoration site</small>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card animate-on-scroll">
+                    <div class="card-header">
+                        <div class="card-icon">💾</div>
+                        <h3 class="card-title">Processed Datasets</h3>
+                    </div>
+                    <ul class="data-list">
+                        <li class="data-item">
+                            <div class="file-icon">📈</div>
+                            <div class="file-info">
+                                <h4>kilifi_ndvi_2020_2024.json</h4>
+                                <small>NDVI time series analysis</small>
+                            </div>
+                            <button class="download-btn" onclick="downloadData('ndvi')">Download</button>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">🗺️</div>
+                            <div class="file-info">
+                                <h4>mangrove_extent_1996.geojson</h4>
+                                <small>Historical boundaries</small>
+                            </div>
+                            <button class="download-btn" onclick="downloadData('historical')">Download</button>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">🌍</div>
+                            <div class="file-info">
+                                <h4>mangrove_extent_2020.geojson</h4>
+                                <small>Current boundaries</small>
+                            </div>
+                            <button class="download-btn" onclick="downloadData('current')">Download</button>
+                        </li>
+                        <li class="data-item">
+                            <div class="file-icon">📊</div>
+                            <div class="file-info">
+                                <h4>change_analysis.json</h4>
+                                <small>Temporal change statistics</small>
+                            </div>
+                            <button class="download-btn" onclick="downloadData('analysis')">Download</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+  
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p style="font-size: 1.2rem; font-weight: 600; color: #ffffff; margin-bottom: 1rem;">
+                <strong>MARINA DASHBOARD</strong>
+            </p>
+            <p style="color: #a1a1a1;">Powered by Google Earth Engine & Machine Learning</p>
+            <div class="tech-stack">
+                <span class="tech-badge">Python</span>
+                <span class="tech-badge">Google Earth Engine</span>
+                <span class="tech-badge">RandomForest ML</span>
+                <span class="tech-badge">Landsat 8/9</span>
+                <span class="tech-badge">Next.js</span>
+            </div>
+            <p style="color: #666; margin-top: 2rem;">
